@@ -46,7 +46,6 @@
     var userMarker, userCircle;
     var currentLatLng = null;
 
-    // Hàm cập nhật chấm vị trí trên bản đồ
     function updateLocationMarker(lat, lng, accuracy) {
         currentLatLng = L.latLng(lat, lng);
         var radius = accuracy / 2;
@@ -84,10 +83,9 @@
         }
     }
 
-    // Hàm định dạng số diện tích thêm dấu chấm hàng nghìn (VD: 6546 -> 6.546)
+    // Định dạng diện tích chuẩn 6.546 m²
     function formatDienTich(val) {
         if (!val) return "";
-        // Nếu chuỗi chứa dấu gạch chéo do lỗi định dạng ngày trước đó, bóc tách lấy số cuối
         var strVal = String(val).trim();
         if (strVal.includes("/")) {
             var parts = strVal.split("/");
@@ -98,17 +96,19 @@
         return new Intl.NumberFormat('vi-VN').format(num) + " m²";
     }
 
-    // Hàm tìm kiếm thuộc tính động không phân biệt chữ hoa thường hay khoảng trống
-    function getPropValue(props, possibleKeys) {
-        for (var key in props) {
-            var cleanKey = key.toLowerCase().replace(/\s+/g, '');
-            for (var i = 0; i < possibleKeys.length; i++) {
-                if (cleanKey.includes(possibleKeys[i])) {
-                    return props[key] !== undefined && props[key] !== null ? props[key] : "";
-                }
-            }
-        }
-        return "";
+    // Hàm chuẩn hóa chuỗi để so sánh chính xác tiêu đề không sợ lỗi font UTF-8
+    function slugify(text) {
+        if (!text) return "";
+        return text.toString().toLowerCase()
+            .replace(/[àáạảãâầấậẩẫăằắặẳẵ]/g, "a")
+            .replace(/[èéẹẻẽêềếệểễ]/g, "e")
+            .replace(/[ìíịỉĩ]/g, "i")
+            .replace(/[òóọỏõôồốộổỗơờớợởỡ]/g, "o")
+            .replace(/[ùúụủũưừứựửữ]/g, "u")
+            .replace(/[ỳýỵỷỹ]/g, "y")
+            .replace(/đ/g, "d")
+            .replace(/\s+/g, "")
+            .replace(/[^a-z0-9]/g, "");
     }
 
     fetch(webAppUrl)
@@ -120,21 +120,32 @@
                 onEachFeature: function (feature, layer) {
                     var p = feature.properties;
                     
-                    // Trích xuất dữ liệu động dựa theo từ khóa cốt lõi của cột
-                    var idDat = getPropValue(p, ["iddat", "id"]);
-                    var soTo = getPropValue(p, ["sơ", "so", "tờ", "to"]);
-                    var soThua = getPropValue(p, ["thửa", "thua"]);
-                    var dienTichRaw = getPropValue(p, ["diệntích", "dientich"]);
-                    var loaiDat = getPropValue(p, ["đất", "loại"]);
-                    var tenChu = getPropValue(p, ["chủ", "tenchu"]);
-                    var soDinhDanh = getPropValue(p, ["địnhdanh", "dinhdanh"]);
-                    var soPhatHanh = getPropValue(p, ["pháthành", "pháthiện", "phathanh"]);
-                    var ngayTao = getPropValue(p, ["ngàytạo", "ngaytao"]);
-                    var ngayCapNhat = getPropValue(p, ["cậpnhật", "capnhat"]);
-                    var trangThai = getPropValue(p, ["trạngthái", "hạtthái", "trangthai"]);
-                    var ghiChu = getPropValue(p, ["ghi", "chú", "ghichu"]);
+                    // Tạo một bản đồ chứa dữ liệu đã chuẩn hóa khóa (Key)
+                    var cleanProps = {};
+                    for (var rawKey in p) {
+                        cleanProps[slugify(rawKey)] = p[rawKey];
+                    }
 
-                    // Thiết kế lại bảng popup hiển thị cố định tiêu đề chuẩn tiếng Việt
+                    // Hàm lấy giá trị an toàn từ khóa đã chuẩn hóa
+                    function val(slugKey) {
+                        return cleanProps[slugKey] !== undefined && cleanProps[slugKey] !== null ? cleanProps[slugKey] : "";
+                    }
+
+                    // Tự động tìm chính xác các trường dựa vào các biến thể ký tự có thể có từ Web App
+                    var idDat = val("iddat") || val("id");
+                    var soTo = val("soto") || val("so");
+                    var soThua = val("sothua") || val("thua");
+                    var dienTichRaw = val("dientich") || val("dt");
+                    var loaiDat = val("loaidat") || val("dat");
+                    var tenChu = val("tenchu") || val("chu");
+                    var soDinhDanh = val("sodinhdanh") || val("dinhdanh");
+                    var soPhatHanh = val("sophathanhthuadat") || val("sophathanh") || val("sophathien");
+                    var ngayTao = val("ngaytao");
+                    var ngayCapNhat = val("ngaycapnhat") || val("capnhat");
+                    var trangThai = val("trangthaithuadat") || val("trangthai") || val("hatthai");
+                    var ghiChu = val("ghichu") || val("ghi");
+
+                    // Ép cố định giao diện cột bên trái chuẩn tiếng Việt 100%
                     var popupContent = "<table class='popup-table'>" +
                         "<tr><td><b>ID đất</b></td><td><span class='popup-value'>" + idDat + "</span></td></tr>" +
                         "<tr><td><b>Số tờ</b></td><td><span class='popup-value'>" + soTo + "</span></td></tr>" +
