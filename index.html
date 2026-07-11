@@ -40,48 +40,57 @@
         maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
     }).addTo(map);
 
-    // ĐÃ THAY ĐƯỜNG LINK WEB APP CỦA BẠN VÀO ĐÂY
+    // Đường link Web App của bạn
     var webAppUrl = "https://script.google.com/macros/s/AKfycbyXnmcP5otInN-bMe6AYC6xDqG1w6_iR0uBaD9JgpcJuPmVU78HaMzBId_uHz1JOfrL/exec";
 
     var userMarker, userCircle;
-    var shouldSetView = false; // Biến cờ kiểm soát: Chỉ nhảy tâm khi chủ động bấm nút
+    var currentLatLng = null;
 
-    // Hàm cập nhật vị trí GPS liên tục
-    map.on('locationfound', function(e) {
-        var radius = e.accuracy / 2;
+    // Hàm cập nhật chấm vị trí trên bản đồ (Tuyệt đối KHÔNG thay đổi tâm bản đồ setView)
+    function updateLocationMarker(lat, lng, accuracy) {
+        currentLatLng = L.latLng(lat, lng);
+        var radius = accuracy / 2;
 
         if (userMarker) { 
             map.removeLayer(userMarker); 
             map.removeLayer(userCircle); 
         }
 
-        // Vẽ chấm vị trí hiện tại
-        userMarker = L.circleMarker(e.latlng, {
+        userMarker = L.circleMarker(currentLatLng, {
             radius: 8, fillColor: '#007bff', color: '#fff', weight: 2, fillOpacity: 1
         }).addTo(map);
 
-        userCircle = L.circle(e.latlng, radius, {
+        userCircle = L.circle(currentLatLng, radius, {
             color: '#007bff', fillColor: '#007bff', fillOpacity: 0.1, weight: 1
         }).addTo(map);
+    }
 
-        // NẾU BẤM NÚT THÌ MỚI NHẢY TÂM BẢN ĐỒ VỀ VỊ TRÍ
-        if (shouldSetView) {
-            map.setView(e.latlng, 18);
-            shouldSetView = false; // Nhảy xong reset lại ngay để bạn tự do kéo màn hình
-        }
-    });
+    // Theo dõi GPS chạy ngầm bằng hệ thống của trình duyệt (Không liên quan đến Leaflet nhảy tâm)
+    if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(function(position) {
+            updateLocationMarker(position.coords.latitude, position.coords.longitude, position.coords.accuracy);
+        }, function(error) {
+            console.warn("Lỗi cập nhật GPS ngầm: " + error.message);
+        }, {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 5000
+        });
+    }
 
-    map.on('locationerror', function(e) {
-        alert("Lỗi GPS: " + e.message);
-    });
-
-    // CHẠY NGẦM: Cập nhật vị trí liên tục nhưng KHÔNG nhảy màn hình (setView: false)
-    map.locate({ watch: true, setView: false, enableHighAccuracy: true });
-
-    // HÀM KHI BẤM NÚT ĐỊNH VỊ
+    // HÀM CHỈ CHẠY KHI BẠN CHỦ ĐỘNG BẤM NÚT ĐỊNH VỊ
     function findMyLocation() {
-        shouldSetView = true; // Kích hoạt cờ cho phép nhảy tâm bản đồ
-        map.locate({ enableHighAccuracy: true });
+        if (currentLatLng) {
+            map.setView(currentLatLng, 18);
+        } else {
+            // Nếu lúc bấm nút mà chưa có vị trí chạy ngầm, tiến hành quét nhanh 1 lần duy nhất
+            navigator.geolocation.getCurrentPosition(function(position) {
+                updateLocationMarker(position.coords.latitude, position.coords.longitude, position.coords.accuracy);
+                map.setView(currentLatLng, 18);
+            }, function(error) {
+                alert("Không lấy được GPS: " + error.message);
+            }, { enableHighAccuracy: true });
+        }
     }
 
     // Tải dữ liệu thửa đất từ Google Sheet
