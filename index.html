@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bản Đồ Thửa Đất Thực Địa</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        html, body, #map { height: 100%; margin: 0; padding: 0; }
+        .leaflet-popup-content { margin: 8px 10px; line-height: 1.2; }
+        .popup-table { border-collapse: collapse; width: 100%; font-size: 11px; color: #444; }
+        .popup-table td { border: 1px solid #eee; padding: 2px 4px; vertical-align: top; }
+        .popup-table b { color: #333; font-weight: 600; }
+        .popup-table tr:nth-child(even){background-color: #fafafa;}
+        .popup-value { display: inline-block; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    </style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+    var map = L.map('map').setView([10.25, 105.18], 13);
+    L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+        maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+    }).addTo(map);
+
+    // THAY LINK WEB APP CỦA BẠN VÀO GIỮA HAI DẤU NHÁY DƯỚI ĐÂY:
+    var webAppUrl = "https://script.google.com/macros/s/AKfycbyXnmcP5otInN-bMe6AYC6xDqG1w6_iR0uBaD9JgpcJuPmVU78HaMzBId_uHz1JOfrL/exec";
+
+    function createCompactCell(value) {
+        return '<span class="popup-value" title="' + value + '">' + value + '</span>';
+    }
+
+    fetch(webAppUrl)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) { alert("Lỗi: " + data.error); return; }
+            L.geoJSON(data, {
+                style: { color: "#e74c3c", weight: 1.5, fillColor: "#9b59b6", fillOpacity: 0.4 },
+                onEachFeature: function (feature, layer) {
+                    var popupContent = "<table class='popup-table'>";
+                    for (var key in feature.properties) {
+                        popupContent += "<tr><td><b>" + key + "</b></td><td>" + createCompactCell(feature.properties[key]) + "</td></tr>";
+                    }
+                    popupContent += "</table>";
+                    layer.bindPopup(popupContent, { maxWidth: 250 });
+                }
+            }).addTo(map);
+        })
+        .catch(error => console.error('Lỗi tải dữ liệu:', error));
+</script>
+</body>
+</html>
