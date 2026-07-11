@@ -46,7 +46,7 @@
     var userMarker, userCircle;
     var currentLatLng = null;
 
-    // Hàm cập nhật chấm vị trí trên bản đồ (Tuyệt đối KHÔNG thay đổi tâm bản đồ setView)
+    // Hàm cập nhật chấm vị trí trên bản đồ
     function updateLocationMarker(lat, lng, accuracy) {
         currentLatLng = L.latLng(lat, lng);
         var radius = accuracy / 2;
@@ -65,36 +65,52 @@
         }).addTo(map);
     }
 
-    // Theo dõi GPS chạy ngầm bằng hệ thống của trình duyệt (Không liên quan đến Leaflet nhảy tâm)
     if (navigator.geolocation) {
         navigator.geolocation.watchPosition(function(position) {
             updateLocationMarker(position.coords.latitude, position.coords.longitude, position.coords.accuracy);
         }, function(error) {
             console.warn("Lỗi cập nhật GPS ngầm: " + error.message);
-        }, {
-            enableHighAccuracy: true,
-            maximumAge: 0,
-            timeout: 5000
-        });
+        }, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
     }
 
-    // HÀM CHỈ CHẠY KHI BẠN CHỦ ĐỘNG BẤM NÚT ĐỊNH VỊ
     function findMyLocation() {
         if (currentLatLng) {
             map.setView(currentLatLng, 18);
         } else {
-            // Nếu lúc bấm nút mà chưa có vị trí chạy ngầm, tiến hành quét nhanh 1 lần duy nhất
             navigator.geolocation.getCurrentPosition(function(position) {
                 updateLocationMarker(position.coords.latitude, position.coords.longitude, position.coords.accuracy);
                 map.setView(currentLatLng, 18);
-            }, function(error) {
-                alert("Không lấy được GPS: " + error.message);
-            }, { enableHighAccuracy: true });
+            }, function(error) { alert("Không lấy được GPS: " + error.message); }, { enableHighAccuracy: true });
         }
     }
 
-    // Tải dữ liệu thửa đất từ Google Sheet
-    function createCompactCell(value) {
+    // BỘ SỬA LỖI HIỂN THỊ TIÊU ĐỀ CỘT
+    function fixHeaderName(key) {
+        var cleanKey = key.trim();
+        if (cleanKey === "Số") return "Số tờ";
+        if (cleanKey === "đất") return "Loại đất";
+        if (cleanKey.includes("phát hiện")) return "Số phát hành thửa đất";
+        if (cleanKey.includes("Hạt thái") || cleanKey === "thái") return "Trạng thái thửa đất";
+        if (cleanKey === "Ghi") return "Ghi chú";
+        return cleanKey;
+    }
+
+    // BỘ SỬA LỖI ĐỊNH DẠNG GIÁ TRỊ (BIẾN NGÀY SAI THÀNH DIỆN TÍCH THỰC)
+    function fixValueDisplay(key, value) {
+        if (!value) return "";
+        var cleanKey = key.trim();
+        
+        // Sửa lỗi diện tích biến thành ngày tháng (VD: 01/06/6546 -> 6546 m²)
+        if (cleanKey.toLowerCase().includes("diện tích") || cleanKey.toLowerCase().includes("dien tich")) {
+            var strVal = String(value);
+            if (strVal.includes("/")) {
+                var parts = strVal.split("/");
+                var actualNumber = parts[parts.length - 1]; // Lấy số cuối cùng 6546
+                return '<span class="popup-value">' + actualNumber + ' m²</span>';
+            }
+            return '<span class="popup-value">' + value + ' m²</span>';
+        }
+        
         return '<span class="popup-value" title="' + value + '">' + value + '</span>';
     }
 
@@ -107,7 +123,9 @@
                 onEachFeature: function (feature, layer) {
                     var popupContent = "<table class='popup-table'>";
                     for (var key in feature.properties) {
-                        popupContent += "<tr><td><b>" + key + "</b></td><td>" + createCompactCell(feature.properties[key]) + "</td></tr>";
+                        var displayHeader = fixHeaderName(key);
+                        var displayValue = fixValueDisplay(key, feature.properties[key]);
+                        popupContent += "<tr><td><b>" + displayHeader + "</b></td><td>" + displayValue + "</td></tr>";
                     }
                     popupContent += "</table>";
                     layer.bindPopup(popupContent, { maxWidth: 250 });
