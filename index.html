@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bản Đồ Thửa Đất Thực Địa</title>
+    <title>Bản Đồ Thửa Đất Thực Địa + GPS</title>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
@@ -14,19 +14,68 @@
         .popup-table b { color: #333; font-weight: 600; }
         .popup-table tr:nth-child(even){background-color: #fafafa;}
         .popup-value { display: inline-block; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        
+        /* Nút định vị GPS góc màn hình */
+        .gps-button {
+            position: absolute; bottom: 20px; right: 20px; z-index: 1000;
+            background: white; border: none; width: 45px; height: 45px;
+            border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
     </style>
 </head>
 <body>
+
 <div id="map"></div>
+<button class="gps-button" onclick="findMyLocation()">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#007bff" stroke-width="2"><circle cx="12" cy="12" r="7"></circle><circle cx="12" cy="12" r="1" fill="#007bff"></circle><line x1="12" y1="1" x2="12" y2="4"></line><line x1="12" y1="20" x2="12" y2="23"></line><line x1="1" y1="12" x2="4" y2="12"></line><line x1="20" y1="12" x2="23" y2="12"></line></svg>
+</button>
+
 <script>
+    // 1. Khởi tạo bản đồ ban đầu
     var map = L.map('map').setView([10.25, 105.18], 13);
-    L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+
+    var googleSatellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
         maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
     }).addTo(map);
 
-    // THAY LINK WEB APP CỦA BẠN VÀO GIỮA HAI DẤU NHÁY DƯỚI ĐÂY:
+    // THAY LINK WEB APP CỦA BẠN VÀO ĐÂY
     var webAppUrl = "https://script.google.com/macros/s/AKfycbyXnmcP5otInN-bMe6AYC6xDqG1w6_iR0uBaD9JgpcJuPmVU78HaMzBId_uHz1JOfrL/exec";
 
+    // 2. Cấu hình định vị GPS liên tục
+    var userMarker, userCircle;
+
+    // Hàm tự động chạy khi tìm thấy vị trí GPS
+    map.on('locationfound', function(e) {
+        var radius = e.accuracy / 2; // Độ sai số mét
+
+        // Nếu đã có dấu vị trí cũ thì xóa đi để vẽ cái mới
+        if (userMarker) { map.removeLayer(userMarker); map.removeLayer(userCircle); }
+
+        // Vẽ chấm xanh vị trí hiện tại
+        userMarker = L.circleMarker(e.latlng, {
+            radius: 8, fillColor: '#007bff', color: '#fff', weight: 2, fillOpacity: 1
+        }).addTo(map);
+
+        // Vẽ vòng tròn mờ hiển thị độ sai số GPS
+        userCircle = L.circle(e.latlng, radius, {
+            color: '#007bff', fillColor: '#007bff', fillOpacity: 0.15, weight: 1
+        }).addTo(map);
+    });
+
+    map.on('locationerror', function(e) {
+        alert("Không thể lấy vị trí GPS: " + e.message + ". Bạn đã bật định vị trên điện thoại chưa?");
+    });
+
+    // Kích hoạt định vị nền (Cập nhật liên tục khi di chuyển mà không di chuyển tâm bản đồ gây giật)
+    map.locate({ watch: true, enableHighAccuracy: true });
+
+    // Hàm giúp bấm vào nút tròn góc màn hình là bản đồ tự bay về vị trí của bạn
+    function findMyLocation() {
+        map.locate({ setView: true, maxZoom: 18, enableHighAccuracy: true });
+    }
+
+    // Tải dữ liệu thửa đất từ Google Sheet lên
     function createCompactCell(value) {
         return '<span class="popup-value" title="' + value + '">' + value + '</span>';
     }
