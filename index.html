@@ -84,34 +84,31 @@
         }
     }
 
-    // BỘ SỬA LỖI HIỂN THỊ TIÊU ĐỀ CỘT
-    function fixHeaderName(key) {
-        var cleanKey = key.trim();
-        if (cleanKey === "Số") return "Số tờ";
-        if (cleanKey === "đất") return "Loại đất";
-        if (cleanKey.includes("phát hiện")) return "Số phát hành thửa đất";
-        if (cleanKey.includes("Hạt thái") || cleanKey === "thái") return "Trạng thái thửa đất";
-        if (cleanKey === "Ghi") return "Ghi chú";
-        return cleanKey;
+    // Hàm định dạng số diện tích thêm dấu chấm hàng nghìn (VD: 6546 -> 6.546)
+    function formatDienTich(val) {
+        if (!val) return "";
+        // Nếu chuỗi chứa dấu gạch chéo do lỗi định dạng ngày trước đó, bóc tách lấy số cuối
+        var strVal = String(val).trim();
+        if (strVal.includes("/")) {
+            var parts = strVal.split("/");
+            strVal = parts[parts.length - 1];
+        }
+        var num = parseFloat(strVal.replace(/[^0-9.]/g, ''));
+        if (isNaN(num)) return val;
+        return new Intl.NumberFormat('vi-VN').format(num) + " m²";
     }
 
-    // BỘ SỬA LỖI ĐỊNH DẠNG GIÁ TRỊ (BIẾN NGÀY SAI THÀNH DIỆN TÍCH THỰC)
-    function fixValueDisplay(key, value) {
-        if (!value) return "";
-        var cleanKey = key.trim();
-        
-        // Sửa lỗi diện tích biến thành ngày tháng (VD: 01/06/6546 -> 6546 m²)
-        if (cleanKey.toLowerCase().includes("diện tích") || cleanKey.toLowerCase().includes("dien tich")) {
-            var strVal = String(value);
-            if (strVal.includes("/")) {
-                var parts = strVal.split("/");
-                var actualNumber = parts[parts.length - 1]; // Lấy số cuối cùng 6546
-                return '<span class="popup-value">' + actualNumber + ' m²</span>';
+    // Hàm tìm kiếm thuộc tính động không phân biệt chữ hoa thường hay khoảng trống
+    function getPropValue(props, possibleKeys) {
+        for (var key in props) {
+            var cleanKey = key.toLowerCase().replace(/\s+/g, '');
+            for (var i = 0; i < possibleKeys.length; i++) {
+                if (cleanKey.includes(possibleKeys[i])) {
+                    return props[key] !== undefined && props[key] !== null ? props[key] : "";
+                }
             }
-            return '<span class="popup-value">' + value + ' m²</span>';
         }
-        
-        return '<span class="popup-value" title="' + value + '">' + value + '</span>';
+        return "";
     }
 
     fetch(webAppUrl)
@@ -121,13 +118,38 @@
             L.geoJSON(data, {
                 style: { color: "#e74c3c", weight: 1.5, fillColor: "#9b59b6", fillOpacity: 0.4 },
                 onEachFeature: function (feature, layer) {
-                    var popupContent = "<table class='popup-table'>";
-                    for (var key in feature.properties) {
-                        var displayHeader = fixHeaderName(key);
-                        var displayValue = fixValueDisplay(key, feature.properties[key]);
-                        popupContent += "<tr><td><b>" + displayHeader + "</b></td><td>" + displayValue + "</td></tr>";
-                    }
-                    popupContent += "</table>";
+                    var p = feature.properties;
+                    
+                    // Trích xuất dữ liệu động dựa theo từ khóa cốt lõi của cột
+                    var idDat = getPropValue(p, ["iddat", "id"]);
+                    var soTo = getPropValue(p, ["sơ", "so", "tờ", "to"]);
+                    var soThua = getPropValue(p, ["thửa", "thua"]);
+                    var dienTichRaw = getPropValue(p, ["diệntích", "dientich"]);
+                    var loaiDat = getPropValue(p, ["đất", "loại"]);
+                    var tenChu = getPropValue(p, ["chủ", "tenchu"]);
+                    var soDinhDanh = getPropValue(p, ["địnhdanh", "dinhdanh"]);
+                    var soPhatHanh = getPropValue(p, ["pháthành", "pháthiện", "phathanh"]);
+                    var ngayTao = getPropValue(p, ["ngàytạo", "ngaytao"]);
+                    var ngayCapNhat = getPropValue(p, ["cậpnhật", "capnhat"]);
+                    var trangThai = getPropValue(p, ["trạngthái", "hạtthái", "trangthai"]);
+                    var ghiChu = getPropValue(p, ["ghi", "chú", "ghichu"]);
+
+                    // Thiết kế lại bảng popup hiển thị cố định tiêu đề chuẩn tiếng Việt
+                    var popupContent = "<table class='popup-table'>" +
+                        "<tr><td><b>ID đất</b></td><td><span class='popup-value'>" + idDat + "</span></td></tr>" +
+                        "<tr><td><b>Số tờ</b></td><td><span class='popup-value'>" + soTo + "</span></td></tr>" +
+                        "<tr><td><b>Số thửa</b></td><td><span class='popup-value'>" + soThua + "</span></td></tr>" +
+                        "<tr><td><b>Diện tích</b></td><td>" + formatDienTich(dienTichRaw) + "</td></tr>" +
+                        "<tr><td><b>Loại đất</b></td><td><span class='popup-value'>" + loaiDat + "</span></td></tr>" +
+                        "<tr><td><b>Tên chủ</b></td><td><span class='popup-value' title='" + tenChu + "'>" + tenChu + "</span></td></tr>" +
+                        "<tr><td><b>Số Định Danh</b></td><td><span class='popup-value'>" + soDinhDanh + "</span></td></tr>" +
+                        "<tr><td><b>Số phát hành thửa đất</b></td><td><span class='popup-value'>" + soPhatHanh + "</span></td></tr>" +
+                        "<tr><td><b>Ngày tạo</b></td><td><span class='popup-value'>" + ngayTao + "</span></td></tr>" +
+                        "<tr><td><b>Ngày cập nhật</b></td><td><span class='popup-value'>" + ngayCapNhat + "</span></td></tr>" +
+                        "<tr><td><b>Trạng thái thửa đất</b></td><td><span class='popup-value'>" + trangThai + "</span></td></tr>" +
+                        "<tr><td><b>Ghi chú</b></td><td><span class='popup-value' title='" + ghiChu + "'>" + ghiChu + "</span></td></tr>" +
+                        "</table>";
+
                     layer.bindPopup(popupContent, { maxWidth: 250 });
                 }
             }).addTo(map);
