@@ -29,6 +29,10 @@
 </button>
 
 <script>
+    // 1. CHẶN BẬT POPUP NHẬP SĐT NGAY LẬP TỨC TRƯỚC KHI KHOÉT BẢN ĐỒ NỀN
+    var userPhone = prompt("Vui lòng nhập Số Điện Thoại để xác minh quyền truy cập bản đồ:", "");
+    userPhone = userPhone ? userPhone.trim() : "";
+
     var map = L.map('map').setView([10.25, 105.18], 13);
     L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] }).addTo(map);
 
@@ -115,13 +119,31 @@
 
     fetch(webAppUrl)
         .then(response => response.json())
-        .then(data => {
-            data.forEach(function(item) {
+        .then(res => {
+            // =================================================================
+            // PHẦN POPUP BẢO MẬT SĐT - ĐÃ ĐỒNG BỘ ĐÚNG TÊN BIẾN "res" 
+            // =================================================================
+            var allowedPhones = res.allowedPhones || [];
+            var plots = res.plots || [];
+            
+            // Chuẩn hóa và so khớp SĐT người dùng nhập với danh sách từ tab "Thương mại"
+            var cleanAllowedPhones = allowedPhones.map(function(p) { return String(p).trim(); });
+            var hopLe = cleanAllowedPhones.indexOf(userPhone) !== -1;
+            
+            if (!hopLe) {
+                alert("Số điện thoại không chính xác hoặc bạn không có quyền xem bản đồ này!");
+                // Xoá bản đồ nền nếu truy cập trái phép
+                document.getElementById("map").style.display = "none";
+                return; 
+            }
+            // =================================================================
+            
+            // TOÀN BỘ LOGIC VẼ THỬA ĐẤT VÀ POPUP THÔNG TIN GỐC ĐƯỢC GIỮ NGUYÊN VẸN CỦA BẠN
+            plots.forEach(function(item) {
                 if (!item.wkt) return;
                 var coords = wktToCoords(item.wkt);
                 var p = item.properties;
                 
-                // Cấp màu sắc tự động theo giá trị loại đất thực tế trả về từ thuộc tính
                 var mauSac = getMauTheoLoaiDat(p.loai_dat);
                 
                 var polygon = L.polygon(coords, { 
@@ -133,7 +155,6 @@
                 
                 var check = function(v) { return (v !== undefined && v !== null) ? v : ""; };
 
-                // KHÓA CỨNG TEXT TIÊU ĐỀ TIẾNG VIỆT CHUẨN 100%
                 var popupContent = "<table class='popup-table'>" +
                     "<tr><td><b>ID đất</b></td><td><span class='popup-value'>" + check(p.id_dat) + "</span></td></tr>" +
                     "<tr><td><b>Số tờ</b></td><td><span class='popup-value'>" + check(p.so_to) + "</span></td></tr>" +
