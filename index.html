@@ -74,7 +74,7 @@
             data.forEach(function(item) {
                 if (!item.wkt) return;
                 var coords = wktToCoords(item.wkt);
-                var polygon = L.polygon(coords, { color: "#e74c3c", weight: 1.5, fillColor: "#9b59b6", fillOpacity: 0.4 }).addTo(map);
+                var polygon = L.polygon(coords, { color: "#FF0000", weight: 1.5, fillColor: "#FFFF00", fillOpacity: 0.35 }).addTo(map);
                 
                 var p = item.properties;
                 var check = function(v) { return (v !== undefined && v !== null) ? v : ""; };
