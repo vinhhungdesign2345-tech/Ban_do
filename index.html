@@ -53,13 +53,10 @@
         else { navigator.geolocation.getCurrentPosition(function(p) { updateLocationMarker(p.coords.latitude, p.coords.longitude, p.coords.accuracy); map.setView(currentLatLng, 18); }, function(e){}, { enableHighAccuracy: true }); }
     }
 
-    // Định dạng hiển thị dấu chấm hàng nghìn cho Số diện tích từ dữ liệu sạch
     function formatDienTich(val) {
         if (val === undefined || val === null || val === "") return "";
         var num = parseFloat(val);
-        if (!isNaN(num)) {
-            return new Intl.NumberFormat('vi-VN').format(num) + " m²";
-        }
+        if (!isNaN(num)) return new Intl.NumberFormat('vi-VN').format(num) + " m²";
         return val;
     }
 
@@ -80,31 +77,22 @@
                 var polygon = L.polygon(coords, { color: "#e74c3c", weight: 1.5, fillColor: "#9b59b6", fillOpacity: 0.4 }).addTo(map);
                 
                 var p = item.properties;
-                
-                // Khai báo ánh xạ đọc dữ liệu linh hoạt, tìm theo chữ hoa chữ thường không sợ lệch tiêu đề gốc
-                var getVal = function(targetKey) {
-                    for (var key in p) {
-                        if (key.toLowerCase().trim() === targetKey.toLowerCase().trim()) {
-                            return p[key];
-                        }
-                    }
-                    return "";
-                };
+                var check = function(v) { return (v !== undefined && v !== null) ? v : ""; };
 
-                // ÉP CỨNG CHỮ TIÊU ĐỀ TIẾNG VIỆT CHUẨN 100% Ở CỘT BÊN TRÁI POPUP
+                // ÉP CỐ ĐỊNH CHỮ TIÊU ĐỀ TIẾNG VIỆT CHUẨN ĐẸP 100%
                 var popupContent = "<table class='popup-table'>" +
-                    "<tr><td><b>ID đất</b></td><td><span class='popup-value'>" + getVal("ID đất") + "</span></td></tr>" +
-                    "<tr><td><b>Số tờ</b></td><td><span class='popup-value'>" + getVal("Số tờ") + "</span></td></tr>" +
-                    "<tr><td><b>Số thửa</b></td><td><span class='popup-value'>" + getVal("Số thửa") + "</span></td></tr>" +
-                    "<tr><td><b>Diện tích</b></td><td>" + formatDienTich(getVal("Diện tích")) + "</td></tr>" +
-                    "<tr><td><b>Loại đất</b></td><td><span class='popup-value'>" + getVal("Loại đất") + "</span></td></tr>" +
-                    "<tr><td><b>Tên chủ</b></td><td><span class='popup-value' title='" + getVal("Tên chủ") + "'>" + getVal("Tên chủ") + "</span></td></tr>" +
-                    "<tr><td><b>Số Định Danh</b></td><td><span class='popup-value'>" + getVal("Số Định Danh") + "</span></td></tr>" +
-                    "<tr><td><b>Số phát hành thửa đất</b></td><td><span class='popup-value'>" + getVal("Số phát hành thửa đất") + "</span></td></tr>" +
-                    "<tr><td><b>Ngày tạo</b></td><td><span class='popup-value'>" + getVal("Ngày tạo") + "</span></td></tr>" +
-                    "<tr><td><b>Ngày cập nhật</b></td><td><span class='popup-value'>" + getVal("Ngày cập nhật") + "</span></td></tr>" +
-                    "<tr><td><b>Trạng thái thửa đất</b></td><td><span class='popup-value'>" + getVal("Trạng thái thửa đất") + "</span></td></tr>" +
-                    "<tr><td><b>Ghi chú</b></td><td><span class='popup-value' title='" + getVal("Ghi chú") + "'>" + getVal("Ghi chú") + "</span></td></tr>" +
+                    "<tr><td><b>ID đất</b></td><td><span class='popup-value'>" + check(p.id_dat) + "</span></td></tr>" +
+                    "<tr><td><b>Số tờ</b></td><td><span class='popup-value'>" + check(p.so_to) + "</span></td></tr>" +
+                    "<tr><td><b>Số thửa</b></td><td><span class='popup-value'>" + check(p.so_thua) + "</span></td></tr>" +
+                    "<tr><td><b>Diện tích</b></td><td>" + formatDienTich(p.dien_tich) + "</td></tr>" +
+                    "<tr><td><b>Loại đất</b></td><td><span class='popup-value'>" + check(p.loai_dat) + "</span></td></tr>" +
+                    "<tr><td><b>Tên chủ</b></td><td><span class='popup-value' title='" + check(p.ten_chu) + "'>" + check(p.ten_chu) + "</span></td></tr>" +
+                    "<tr><td><b>Số Định Danh</b></td><td><span class='popup-value'>" + check(p.so_dinh_danh) + "</span></td></tr>" +
+                    "<tr><td><b>Số phát hành thửa đất</b></td><td><span class='popup-value'>" + check(p.so_phat_hanh) + "</span></td></tr>" +
+                    "<tr><td><b>Ngày tạo</b></td><td><span class='popup-value'>" + check(p.ngay_tao) + "</span></td></tr>" +
+                    "<tr><td><b>Ngày cập nhật</b></td><td><span class='popup-value'>" + check(p.ngay_cap_nhat) + "</span></td></tr>" +
+                    "<tr><td><b>Trạng thái thửa đất</b></td><td><span class='popup-value'>" + check(p.trang_thai) + "</span></td></tr>" +
+                    "<tr><td><b>Ghi chú</b></td><td><span class='popup-value' title='" + check(p.ghi_chu) + "'>" + check(p.ghi_chu) + "</span></td></tr>" +
                     "</table>";
 
                 polygon.bindPopup(popupContent, { maxWidth: 250 });
