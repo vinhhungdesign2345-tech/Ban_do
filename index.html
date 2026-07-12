@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bản Đồ Thửa Đất Thực Địa + GPS Chuẩn</title>
+    <title>Bản Đồ Thửa Đất Thực Địa</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -14,8 +14,6 @@
         .popup-table b { color: #333; font-weight: 600; }
         .popup-table tr:nth-child(even){background-color: #fafafa;}
         .popup-value { display: inline-block; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        
-        /* Nút định vị GPS góc màn hình */
         .gps-button {
             position: absolute; bottom: 30px; right: 20px; z-index: 1000;
             background: white; border: none; width: 50px; height: 50px;
@@ -25,77 +23,42 @@
     </style>
 </head>
 <body>
-
 <div id="map"></div>
-
 <button class="gps-button" onclick="findMyLocation()">
     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#007bff" stroke-width="2.5"><circle cx="12" cy="12" r="7"></circle><circle cx="12" cy="12" r="1" fill="#007bff"></circle><line x1="12" y1="1" x2="12" y2="4"></line><line x1="12" y1="20" x2="12" y2="23"></line><line x1="1" y1="12" x2="4" y2="12"></line><line x1="20" y1="12" x2="23" y2="12"></line></svg>
 </button>
 
 <script>
-    // 1. Khởi tạo bản đồ ban đầu
     var map = L.map('map').setView([10.25, 105.18], 13);
+    L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] }).addTo(map);
 
-    var googleSatellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-        maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-    }).addTo(map);
-
-    // Đường link Web App của bạn
     var webAppUrl = "https://script.google.com/macros/s/AKfycbyXnmcP5otInN-bMe6AYC6xDqG1w6_iR0uBaD9JgpcJuPmVU78HaMzBId_uHz1JOfrL/exec";
-
-    var userMarker, userCircle;
-    var currentLatLng = null;
+    var userMarker, userCircle, currentLatLng = null;
 
     function updateLocationMarker(lat, lng, accuracy) {
         currentLatLng = L.latLng(lat, lng);
-        var radius = accuracy / 2;
-
-        if (userMarker) { 
-            map.removeLayer(userMarker); 
-            map.removeLayer(userCircle); 
-        }
-
-        userMarker = L.circleMarker(currentLatLng, {
-            radius: 8, fillColor: '#007bff', color: '#fff', weight: 2, fillOpacity: 1
-        }).addTo(map);
-
-        userCircle = L.circle(currentLatLng, radius, {
-            color: '#007bff', fillColor: '#007bff', fillOpacity: 0.1, weight: 1
-        }).addTo(map);
+        if (userMarker) { map.removeLayer(userMarker); map.removeLayer(userCircle); }
+        userMarker = L.circleMarker(currentLatLng, { radius: 8, fillColor: '#007bff', color: '#fff', weight: 2, fillOpacity: 1 }).addTo(map);
+        userCircle = L.circle(currentLatLng, accuracy / 2, { color: '#007bff', fillColor: '#007bff', fillOpacity: 0.1, weight: 1 }).addTo(map);
     }
 
     if (navigator.geolocation) {
         navigator.geolocation.watchPosition(function(position) {
             updateLocationMarker(position.coords.latitude, position.coords.longitude, position.coords.accuracy);
-        }, function(error) {
-            console.warn("Lỗi cập nhật GPS ngầm: " + error.message);
-        }, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+        }, function(e){}, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
     }
 
     function findMyLocation() {
-        if (currentLatLng) {
-            map.setView(currentLatLng, 18);
-        } else {
-            navigator.geolocation.getCurrentPosition(function(position) {
-                updateLocationMarker(position.coords.latitude, position.coords.longitude, position.coords.accuracy);
-                map.setView(currentLatLng, 18);
-            }, function(error) { alert("Không lấy được GPS: " + error.message); }, { enableHighAccuracy: true });
-        }
+        if (currentLatLng) { map.setView(currentLatLng, 18); }
+        else { navigator.geolocation.getCurrentPosition(function(p) { updateLocationMarker(p.coords.latitude, p.coords.longitude, p.coords.accuracy); map.setView(currentLatLng, 18); }, function(e){}, { enableHighAccuracy: true }); }
     }
 
-    // Định dạng diện tích chuẩn và thêm dấu chấm hàng nghìn (VD: 6546 -> 6.546 m²)
-    function formatDienTich(key, val) {
+    // Định dạng số hiển thị dấu chấm hàng nghìn chuẩn tiếng Việt (VD: 654.6 m² hoặc 6.546 m²)
+    function formatValue(key, val) {
         if (!val) return "";
-        var strVal = String(val).trim();
         var cleanKey = key.toLowerCase();
-        
-        // Chỉ định dạng nếu tiêu đề chứa từ "diện tích" hoặc "dien tich"
         if (cleanKey.includes("diện tích") || cleanKey.includes("dien tich")) {
-            if (strVal.includes("/")) {
-                var parts = strVal.split("/");
-                strVal = parts[parts.length - 1];
-            }
-            var num = parseFloat(strVal.replace(/[^0-9.]/g, ''));
+            var num = parseFloat(String(val).replace(/[^0-9.]/g, ''));
             if (!isNaN(num)) {
                 return new Intl.NumberFormat('vi-VN').format(num) + " m²";
             }
@@ -113,13 +76,10 @@
                     var p = feature.properties;
                     var popupContent = "<table class='popup-table'>";
                     
-                    // LẤY TRỰC TIẾP TỪNG HÀNG TIÊU ĐỀ GỐC CỦA FILE XUẤT RA
+                    // QUÉT VÀ HIỂN THỊ CHÍNH XÁC THEO HÀNG 1 CỦA GOOGLE SHEETS
                     for (var key in p) {
-                        var displayValue = formatDienTich(key, p[key]);
-                        popupContent += "<tr>" +
-                            "<td><b>" + key + "</b></td>" +
-                            "<td><span class='popup-value' title='" + displayValue + "'>" + displayValue + "</span></td>" +
-                            "</tr>";
+                        var displayVal = formatValue(key, p[key]);
+                        popupContent += "<tr><td><b>" + key + "</b></td><td><span class='popup-value' title='" + displayVal + "'>" + displayVal + "</span></td></tr>";
                     }
                     
                     popupContent += "</table>";
