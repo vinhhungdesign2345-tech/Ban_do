@@ -30,7 +30,7 @@
 
 <script>
     // =========================================================================
-    // ⚠️ QUAN TRỌNG: BẠN HÃY THAY LINK WEB APP GOOGLE MỚI CỦA BẠN VÀO ĐÂY
+    // ⚠️ QUAN TRỌNG: ĐƯỜNG LINK WEB APP GOOGLE GOOGLE APPS SCRIPT CỦA BẠN
     // =========================================================================
     var webAppUrl = "https://script.google.com/macros/s/AKfycbyXKmoC9cWo0kITyguVpc-eTbp_imGagxzi4vpyKe9nOXiql63Vf-z_-hzUGKt_T1zR/exec";
 
@@ -98,7 +98,7 @@
         });
     }
 
-    // LUỒNG XỬ LÝ ĐĂNG NHẬP HỢP NHẤT
+    // LUỒNG XỬ LÝ ĐĂNG NHẬP VÀ XÁC THỰC THIẾT BỊ HỢP NHẤT
     fetch(webAppUrl)
         .then(response => response.json())
         .then(res => {
@@ -111,8 +111,15 @@
             userPass = userPass ? userPass.trim() : "";
             
             var account = null;
+            // Chuẩn hóa SĐT đầu vào nhập từ trình duyệt để đối chiếu dữ liệu gốc
+            var cleanPhoneInput = userPhone.replace(/[^0-9]/g, "");
+            if (!cleanPhoneInput.startsWith("0") && cleanPhoneInput !== "") cleanPhoneInput = "0" + cleanPhoneInput;
+
             for (var i = 0; i < allowedUsers.length; i++) {
-                if (allowedUsers[i].phone === userPhone && allowedUsers[i].password === userPass) {
+                var cleanAllowedPhone = allowedUsers[i].phone.replace(/[^0-9]/g, "");
+                if (!cleanAllowedPhone.startsWith("0")) cleanAllowedPhone = "0" + cleanAllowedPhone;
+
+                if (cleanAllowedPhone === cleanPhoneInput && allowedUsers[i].password === userPass) {
                     account = allowedUsers[i];
                     break;
                 }
@@ -138,20 +145,37 @@
                     }
                 } else {
                     alert("Kích hoạt bảo mật thiết bị này lần đầu tiên...");
+                    
+                    // Gửi POST dạng text/plain để né bộ kiểm tra chặn CORS khắt khe của Google
                     fetch(webAppUrl, {
                         method: "POST",
-                        mode: "no-cors",
-                        headers: { "Content-Type": "application/json" },
+                        headers: { "Content-Type": "text/plain;charset=utf-8" },
                         body: JSON.stringify({
                             action: "register_device",
                             phone: userPhone,
                             device_info: currentClientDeviceInfo,
                             device_id: currentClientDeviceId
                         })
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if(data.status === "success") {
+                            alert("Kích hoạt thành công! Bản đồ đang đồng bộ tải lại.");
+                            location.reload();
+                        } else {
+                            alert("Trạng thái từ máy chủ: " + data.status);
+                            location.reload();
+                        }
+                    })
+                    .catch(err => {
+                        console.log("Đồng bộ thiết bị...", err);
+                        setTimeout(() => { location.reload(); }, 1500);
                     });
+                    return;
                 }
             }
 
+            // Vẽ các thửa đất lên bản đồ
             plots.forEach(function(item) {
                 if (!item.wkt) return;
                 var coords = wktToCoords(item.wkt);
@@ -168,7 +192,7 @@
                     "<tr><td><b>Diện tích</b></td><td>" + formatDienTich(p.dien_tich) + "</td></tr>" +
                     "<tr><td><b>Loại đất</b></td><td><span class='popup-value'><b>" + check(p.loai_dat) + "</b></span></td></tr>" +
                     "<tr><td><b>Tên chủ</b></td><td><span class='popup-value' title='" + check(p.ten_chu) + "'>" + check(p.ten_chu) + "</span></td></tr>" +
-                    "<tr><td><b>Ghi chú</b></td><td><span class='popup-value' title='" + check(p.ghi_chu) + "'>" + check(p.ghi_chu) + "</span></td></tr>" +
+                    "<tr><td><b>Trạng thái</b></td><td><span class='popup-value'>" + check(p.trang_thai) + "</span></td></tr>" +
                     "</table>";
 
                 polygon.bindPopup(popupContent, { maxWidth: 250 });
@@ -178,5 +202,3 @@
 </script>
 </body>
 </html>
-
-
