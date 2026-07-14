@@ -30,7 +30,7 @@
 
 <script>
     // =========================================================================
-    // ⚠️ QUAN TRỌNG: ĐƯỜNG LINK WEB APP GOOGLE GOOGLE APPS SCRIPT CỦA BẠN
+    // ⚠️ QUAN TRỌNG: ĐƯỜNG LINK WEB APP GOOGLE APPS SCRIPT CỦA BẠN
     // =========================================================================
     var webAppUrl = "https://script.google.com/macros/s/AKfycbyXKmoC9cWo0kITyguVpc-eTbp_imGagxzi4vpyKe9nOXiql63Vf-z_-hzUGKt_T1zR/exec";
 
@@ -105,9 +105,9 @@
             var allowedUsers = res.allowedUsers || [];
             var plots = res.plots || [];
             
-            var userPhone = prompt("Vui lòng nhập Số Điện thoại đã Đăng ký:", "");
+            var userPhone = prompt("Vui lòng nhập SĐT đã đăng ký:", "");
             userPhone = userPhone ? userPhone.trim() : "";
-            var userPass = prompt("Vui lòng nhập Mật khẩu:", "");
+            var userPass = prompt("Vui lòng nhập mật khẩu được cấp:", "");
             userPass = userPass ? userPass.trim() : "";
             
             var account = null;
@@ -132,24 +132,22 @@
             }
             
             if (account.role.toLowerCase() === "admin") {
-                alert("Xin chào Admin! BẢN ĐỒ ĐÃ MỞ");
+                alert("Xin chào Admin! Bản đồ đã mở");
             } else {
                 var currentClientDeviceId = getOrCreateDeviceId();
                 var currentClientDeviceInfo = getBrowserAndOS();
                 
                 if (account.savedDeviceId !== "") {
+                    // Nếu là Khách và đã liên kết thiết bị từ trước
                     if (account.savedDeviceId !== currentClientDeviceId) {
                         alert("LỖI: Tài khoản này đã được đăng ký cố định trên thiết bị khác!");
                         document.getElementById("map").style.display = "none";
                         return;
                     }
-                    // Đã thêm thông báo thành công cho Khách khi sử dụng đúng thiết bị tại đây
+                    // Khách đăng nhập các lần sau thành công thì báo câu này:
                     alert("Tài khoản hợp lệ - Bản đồ đã mở");
                 } else {
-                    alert("Kích hoạt Tài khoản THÀNH CÔNG");
-                    
-                    // Gửi POST dạng text/plain để né bộ kiểm tra chặn CORS khắt khe của Google
-                                 
+                    // Nếu Khách đăng nhập lần đầu tiên (Chưa có ID thiết bị trên Google Sheet)
                     fetch(webAppUrl, {
                         method: "POST",
                         headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -163,16 +161,16 @@
                     .then(r => r.json())
                     .then(data => {
                         if(data.status === "success") {
-                            alert("Đăng nhập THÀNH CÔNG! BẢN ĐỒ ĐÃ MỞ.");
+                            // Chỉ thông báo đúng một câu duy nhất cho lần đầu
+                            alert("Đăng nhập lần đầu thành công");
                             location.reload();
                         } else {
-                            alert("Trạng thái từ máy chủ: " + data.status);
                             location.reload();
                         }
                     })
                     .catch(err => {
                         console.log("Đồng bộ thiết bị...", err);
-                        setTimeout(() => { location.reload(); }, 1500);
+                        setTimeout(() => { location.reload(); }, 1000);
                     });
                     return;
                 }
@@ -188,7 +186,7 @@
                 var polygon = L.polygon(coords, { color: mauSac.color, weight: 1.5, fillColor: mauSac.fillColor, fillOpacity: 0.45 }).addTo(map);
                 var check = function(v) { return (v !== undefined && v !== null) ? v : ""; };
 
-                // Hiển thị 9 trường dữ liệu y hệt hình ảnh của bạn với Ghi chú ở cuối cùng
+                // Hiển thị 9 trường dữ liệu với Ghi chú ở cuối cùng
                 var popupContent = "<table class='popup-table'>" +
                   "<tr><td><b>ID đất</b></td><td><span class='popup-value'>" + check(p.id_dat) + "</span></td></tr>" +
                   "<tr><td><b>Số tờ</b></td><td><span class='popup-value'>" + check(p.so_to) + "</span></td></tr>" +
