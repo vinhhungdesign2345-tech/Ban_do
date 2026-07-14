@@ -132,7 +132,7 @@
             }
             
             if (account.role.toLowerCase() === "admin") {
-                alert("Xin chào Admin! Bản đồ đã mở");
+                alert("Xin chào Admin! BẢN ĐỒ ĐÃ MỞ");
             } else {
                 var currentClientDeviceId = getOrCreateDeviceId();
                 var currentClientDeviceInfo = getBrowserAndOS();
@@ -146,7 +146,7 @@
                     // Đã thêm thông báo thành công cho Khách khi sử dụng đúng thiết bị tại đây
                     alert("Tài khoản hợp lệ - Bản đồ đã mở");
                 } else {
-                    alert("Kích hoạt Tài khoản lần đầu thành công...");
+                    alert("Kích hoạt Tài khoản THÀNH CÔNG");
                     
                     // Gửi POST dạng text/plain để né bộ kiểm tra chặn CORS khắt khe của Google
                                  
@@ -163,7 +163,7 @@
                     .then(r => r.json())
                     .then(data => {
                         if(data.status === "success") {
-                            alert("Kích hoạt thành công! Bản đồ đã mở.");
+                            alert("Đăng nhập THÀNH CÔNG! BẢN ĐỒ ĐÃ MỞ.");
                             location.reload();
                         } else {
                             alert("Trạng thái từ máy chủ: " + data.status);
