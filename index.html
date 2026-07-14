@@ -105,9 +105,9 @@
             var allowedUsers = res.allowedUsers || [];
             var plots = res.plots || [];
             
-            var userPhone = prompt("Nhập Số Điện thoại truy cập:", "");
+            var userPhone = prompt("Vui lòng nhập Số Điện thoại đã Đăng ký:", "");
             userPhone = userPhone ? userPhone.trim() : "";
-            var userPass = prompt("Nhập Mật khẩu bảo mật:", "");
+            var userPass = prompt("Vui lòng nhập Mật khẩu:", "");
             userPass = userPass ? userPass.trim() : "";
             
             var account = null;
@@ -143,8 +143,10 @@
                         document.getElementById("map").style.display = "none";
                         return;
                     }
+                    // Đã thêm thông báo thành công cho Khách khi sử dụng đúng thiết bị tại đây
+                    alert("Tài khoản hợp lệ - Bản đồ đã mở");
                 } else {
-                    alert("Kích hoạt bảo mật thiết bị này lần đầu tiên...");
+                    alert("Kích hoạt Tài khoản lần đầu thành công...");
                     
                     // Gửi POST dạng text/plain để né bộ kiểm tra chặn CORS khắt khe của Google
                                  
@@ -186,8 +188,7 @@
                 var polygon = L.polygon(coords, { color: mauSac.color, weight: 1.5, fillColor: mauSac.fillColor, fillOpacity: 0.45 }).addTo(map);
                 var check = function(v) { return (v !== undefined && v !== null) ? v : ""; };
 
-                // Hiển thị 7 trường dữ liệu y hệt hình ảnh của bạn + thêm trường Số định danh
-                //  ĐOẠN MỚI BẠN DÁN ĐÈ VÀO THAY THẾ:
+                // Hiển thị 9 trường dữ liệu y hệt hình ảnh của bạn với Ghi chú ở cuối cùng
                 var popupContent = "<table class='popup-table'>" +
                   "<tr><td><b>ID đất</b></td><td><span class='popup-value'>" + check(p.id_dat) + "</span></td></tr>" +
                   "<tr><td><b>Số tờ</b></td><td><span class='popup-value'>" + check(p.so_to) + "</span></td></tr>" +
