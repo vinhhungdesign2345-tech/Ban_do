@@ -126,13 +126,13 @@
             }
             
             if (!account) {
-                alert("Đăng nhập thất bại! Tài khoản sai, hoặc mật khẩu sai, hoặc đã bị Khóa.");
+                alert("Đăng nhập thất bại!");
                 document.getElementById("map").style.display = "none";
                 return;
             }
             
             if (account.role.toLowerCase() === "admin") {
-                alert("Xin chào Admin! Bản đồ đang được tải...");
+                alert("Xin chào Admin! Bản đồ đã mở");
             } else {
                 var currentClientDeviceId = getOrCreateDeviceId();
                 var currentClientDeviceInfo = getBrowserAndOS();
@@ -161,7 +161,7 @@
                     .then(r => r.json())
                     .then(data => {
                         if(data.status === "success") {
-                            alert("Kích hoạt thành công! Bản đồ đang đồng bộ tải lại.");
+                            alert("Kích hoạt thành công! Bản đồ đã mở.");
                             location.reload();
                         } else {
                             alert("Trạng thái từ máy chủ: " + data.status);
