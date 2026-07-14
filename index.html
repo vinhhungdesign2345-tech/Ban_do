@@ -105,9 +105,9 @@
             var allowedUsers = res.allowedUsers || [];
             var plots = res.plots || [];
             
-            var userPhone = prompt("Vui lòng nhập SĐT đã đăng ký:", "");
+            var userPhone = prompt("Vui lòng nhập SĐT đăng ký:", "");
             userPhone = userPhone ? userPhone.trim() : "";
-            var userPass = prompt("Vui lòng nhập mật khẩu được cấp:", "");
+            var userPass = prompt("Vui lòng nhập mật khẩu đăng ký:", "");
             userPass = userPass ? userPass.trim() : "";
             
             var account = null;
@@ -132,7 +132,7 @@
             }
             
             if (account.role.toLowerCase() === "admin") {
-                alert("Xin chào Admin! Bản đồ đã mở");
+                alert("Xin chào Admin! BẢN ĐỒ ĐÃ MỞ");
             } else {
                 var currentClientDeviceId = getOrCreateDeviceId();
                 var currentClientDeviceInfo = getBrowserAndOS();
@@ -145,7 +145,7 @@
                         return;
                     }
                     // Khách đăng nhập các lần sau thành công thì báo câu này:
-                    alert("Tài khoản hợp lệ - Bản đồ đã mở");
+                    alert("Tài khoản hợp lệ - BẢN ĐỒ ĐÃ MỞ");
                 } else {
                     // Nếu Khách đăng nhập lần đầu tiên (Chưa có ID thiết bị trên Google Sheet)
                     fetch(webAppUrl, {
@@ -162,7 +162,7 @@
                     .then(data => {
                         if(data.status === "success") {
                             // Chỉ thông báo đúng một câu duy nhất cho lần đầu
-                            alert("Đăng nhập lần đầu thành công");
+                            alert("ĐĂNG KÝ THÀNH CÔNG");
                             location.reload();
                         } else {
                             location.reload();
