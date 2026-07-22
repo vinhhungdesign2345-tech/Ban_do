@@ -15,31 +15,40 @@
         .popup-table tr:nth-child(even){background-color: #fafafa;}
         .popup-value { display: inline-block; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         
-        /* GIAO DIỆN Ô TÌM KIẾM HỢP NHẤT */
+        /* CỤM THANH CÔNG CỤ TRÊN CÙNG GÓC TRÁI (TÌM KIẾM + CHỌN PHƯỜNG) */
+        .top-left-toolbar {
+            position: absolute; top: 15px; left: 60px; z-index: 1000;
+            display: flex; gap: 8px; flex-wrap: wrap;
+        }
+
         .search-container {
-            position: absolute; top: 20px; left: 60px; z-index: 1000;
-            background: white; padding: 6px; border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2); display: flex; gap: 6px;
+            background: white; padding: 5px 8px; border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2); display: flex; gap: 6px; align-items: center;
         }
         .search-input {
-            width: 220px; height: 32px; border: 1px solid #ccc;
+            width: 180px; height: 30px; border: 1px solid #ccc;
             border-radius: 4px; padding: 0 8px; font-size: 13px; outline: none;
         }
         .search-button {
-            background: #007bff; color: white; border: none; padding: 0 12px;
+            background: #007bff; color: white; border: none; height: 32px; padding: 0 12px;
             border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold;
         }
         .search-button:hover { background: #0056b3; }
 
-        /* DANH SÁCH THẢ CHỌN PHƯỜNG / XÃ GÓC PHẢI */
+        /* Ô CHỌN PHƯỜNG ĐẶT NẰM CẠNH Ô TÌM KIẾM SANG TRỌNG */
         .ward-select-container {
-            position: absolute; top: 20px; right: 20px; z-index: 1000;
-            background: white; padding: 6px 10px; border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2); font-size: 13px; font-weight: bold;
+            background: white; padding: 5px 8px; border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 4px;
+            font-size: 13px; font-weight: bold;
         }
         .ward-select {
-            height: 32px; border: 1px solid #007bff; border-radius: 4px;
-            padding: 0 8px; font-size: 13px; color: #007bff; font-weight: bold; outline: none; cursor: pointer;
+            height: 30px; border: 1px solid #007bff; border-radius: 4px;
+            padding: 0 6px; font-size: 13px; color: #007bff; font-weight: bold; outline: none; cursor: pointer;
+        }
+
+        /* CHỈNH LẠI Ô TÍCH LAYER Ở GÓC PHẢI KHÔNG BỊ CẤN */
+        .leaflet-top.leaflet-right {
+            top: 10px; right: 10px;
         }
 
         .gps-button {
@@ -49,7 +58,7 @@
             cursor: pointer; display: flex; align-items: center; justify-content: center;
         }
 
-        /* KIỂU DÁNG CHỮ TÊN PHƯỜNG XÃ NỔI BẬT TRÊN BẢN ĐỒ */
+        /* TÊN PHƯỜNG XÃ NỔI BẬT */
         .ward-label-text {
             background: transparent;
             border: none;
@@ -64,19 +73,19 @@
 </head>
 <body>
 
-<!-- KHUNG TÌM KIẾM TRÊN BẢN ĐỒ -->
-<div class="search-container">
-    <input type="text" id="searchKey" class="search-input" placeholder="Nhập tờ/thửa (vd: 10/25) hoặc tên chủ...">
-    <button class="search-button" onclick="searchPlot()">Tìm</button>
-</div>
+<!-- KHUNG CÔNG CỤ HỢP NHẤT GÓC TRÁI -->
+<div class="top-left-toolbar">
+    <div class="search-container">
+        <input type="text" id="searchKey" class="search-input" placeholder="Tờ/thửa hoặc tên chủ...">
+        <button class="search-button" onclick="searchPlot()">Tìm</button>
+    </div>
 
-<!-- DANH SÁCH THẢ CHỌN PHƯỜNG / XÃ -->
-<div class="ward-select-container">
-    <label for="wardSelect">📍 Xem Phường/Xã: </label>
-    <select id="wardSelect" class="ward-select" onchange="filterWard(this.value)">
-        <option value="ALL">-- Tất cả Phường/Xã --</option>
-        <!-- Các option Phường/Xã sẽ tự động sắp xếp A-Z và điền vào đây -->
-    </select>
+    <div class="ward-select-container">
+        <label for="wardSelect">📍 Phường/Xã: </label>
+        <select id="wardSelect" class="ward-select" onchange="filterWard(this.value)">
+            <option value="ALL">-- Tất cả --</option>
+        </select>
+    </div>
 </div>
 
 <div id="map"></div>
@@ -91,28 +100,23 @@
     L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] }).addTo(map);
 
     // =========================================================================
-    // 1. KHỞI TẠO BẢNG ĐIỀU KHIỂN & NHÓM BẢO VỆ PHƯỜNG
+    // 1. QUẢN LÝ LAYER VÀ DANH SÁCH PHƯỜNG
     // =========================================================================
     var layerNhomPhuong = L.layerGroup().addTo(map);
 
     var overlayLayers = {
         " Ranh giới Phường/Xã": layerNhomPhuong
     };
-    // Đặt bảng ẩn/hiện layer ngay dưới Menu thả chọn Phường
     L.control.layers(null, overlayLayers, { collapsed: false, position: 'topright' }).addTo(map);
 
-    // Danh sách lưu trữ thông tin các Phường/Xã
     var danhSachPhuongXa = [];
 
-    // Hàm thêm Phường/Xã vào danh sách & sắp xếp thứ tự A-Z
     function addWardToList(id, tenPhuong, layerGroup) {
         danhSachPhuongXa.push({ id: id, name: tenPhuong, layer: layerGroup });
-        // Sắp xếp thứ tự bảng chữ cái A-Z
         danhSachPhuongXa.sort((a, b) => a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' }));
 
-        // Cập nhật lại Menu Dropdown
         var selectElem = document.getElementById("wardSelect");
-        selectElem.innerHTML = '<option value="ALL">-- Tất cả Phường/Xã --</option>';
+        selectElem.innerHTML = '<option value="ALL">-- Tất cả --</option>';
         danhSachPhuongXa.forEach(function(item) {
             var opt = document.createElement("option");
             opt.value = item.id;
@@ -121,10 +125,9 @@
         });
     }
 
-    // Hàm lọc Phường/Xã khi người dùng chọn từ danh sách thả
     function filterWard(selectedId) {
         if (!map.hasLayer(layerNhomPhuong)) {
-            map.addLayer(layerNhomPhuong); // Tự động bật lại layer nếu đang bị tắt
+            map.addLayer(layerNhomPhuong);
         }
 
         if (selectedId === "ALL") {
@@ -148,29 +151,27 @@
 
 
     // =========================================================================
-    // 2. KHU VỰC TẢI VÀ HIỂN THỊ CÁC PHƯỜNG / XÃ (CÓ NHÃN CHỮ LỚN)
+    // 2. TẢI CÁC PHƯỜNG / XÃ GEOJSON
     // =========================================================================
 
-    // --- 1. PHƯỜNG HÒA THÀNH ---
+    // --- PHƯỜNG HÒA THÀNH ---
     fetch('hoa-thanh.geojson')
         .then(response => response.json())
         .then(data => {
             var subGroup = L.layerGroup();
             var layerGeo = L.geoJSON(data, {
                 style: {
-                    color: "#007bff",       // Đường viền xanh dương
-                    weight: 3.5,            // Độ dầy viền
-                    opacity: 0.9,           
-                    fillColor: "#007bff",   
-                    fillOpacity: 0.05,      
-                    interactive: false      
+                    color: "#007bff",
+                    weight: 3.5,
+                    opacity: 0.9,
+                    fillColor: "#007bff",
+                    fillOpacity: 0.05,
+                    interactive: false
                 }
             }).addTo(subGroup);
 
-            // Tự động gán Nhãn chữ lớn tên Phường/Xã vào chính giữa
             var bounds = layerGeo.getBounds();
-            var center = bounds.getCenter();
-            var labelMarker = L.marker(center, {
+            L.marker(bounds.getCenter(), {
                 icon: L.divIcon({
                     className: 'ward-label-text',
                     html: 'PHƯỜNG HÒA THÀNH',
@@ -183,58 +184,14 @@
             subGroup.getBounds = function() { return bounds; };
             subGroup.addTo(layerNhomPhuong);
 
-            // Thêm vào danh sách thả & tự động sắp xếp A-Z
             addWardToList('hoa-thanh', 'Phường Hòa Thành', subGroup);
-            
             map.fitBounds(bounds, { padding: [20, 20] });
         })
         .catch(err => console.error("Chưa đọc được file hoa-thanh.geojson:", err));
 
 
-    /* =========================================================================
-       👉 HƯỚNG DẪN THÊM PHƯỜNG / XÃ MỚI SAU NÀY:
-       -------------------------------------------------------------------------
-       Bước 1: Tải file geojson mới lên GitHub (VD: dinh-thanh.geojson)
-       Bước 2: Copy toàn bộ đoạn code dưới đây và dán tiếp vào bên dưới:
-
-       fetch('dinh-thanh.geojson')
-           .then(response => response.json())
-           .then(data => {
-               var subGroup = L.layerGroup();
-               var layerGeo = L.geoJSON(data, {
-                   style: {
-                       color: "#28a745",    // Màu viền (xanh lá, đỏ #dc3545, v.v...)
-                       weight: 3.5,
-                       opacity: 0.9,
-                       fillColor: "#28a745",
-                       fillOpacity: 0.05,
-                       interactive: false
-                   }
-               }).addTo(subGroup);
-
-               var bounds = layerGeo.getBounds();
-               var labelMarker = L.marker(bounds.getCenter(), {
-                   icon: L.divIcon({
-                       className: 'ward-label-text',
-                       html: 'XÃ ĐỊNH THÀNH', // <--- Đổi tên hiển thị chữ lớn ở đây
-                       iconSize: [200, 30],
-                       iconAnchor: [100, 15]
-                   }),
-                   interactive: false
-               }).addTo(subGroup);
-
-               subGroup.getBounds = function() { return bounds; };
-               subGroup.addTo(layerNhomPhuong);
-
-               // <--- Đổi mã ID và Tên hiển thị trong danh sách thả ở đây
-               addWardToList('dinh-thanh', 'Xã Định Thành', subGroup);
-           })
-           .catch(err => console.error("Chưa đọc được file mới:", err));
-       ========================================================================= */
-
-
     // =========================================================================
-    // 3. XỬ LÝ ĐỊNH VỊ VÀ TÌM KIẾM THỬA ĐẤT
+    // 3. ĐỊNH VỊ VÀ TÌM KIẾM THỬA ĐẤT (GOOGLE SHEETS)
     // =========================================================================
     var userMarker, userCircle, currentLatLng = null;
     var cacThuaDatDangSang = [];
@@ -353,12 +310,10 @@
         if (e.key === 'Enter') { searchPlot(); }
     });
 
-    // LẤY DỮ LIỆU THỬA ĐẤT TỪ GOOGLE SHEETS
     fetch(webAppUrl)
         .then(response => response.json())
         .then(res => {
             var plots = res.plots || [];
-            
             tatCaLayerThuaDat = []; 
             plots.forEach(function(item) {
                 if (!item.wkt) return;
