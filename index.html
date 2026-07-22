@@ -15,10 +15,10 @@
         .popup-table tr:nth-child(even){background-color: #fafafa;}
         .popup-value { display: inline-block; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         
-        /* CỤM THANH CÔNG CỤ TRÊN CÙNG GÓC TRÁI (TÌM KIẾM + CHỌN PHƯỜNG) */
+        /* CỤM THANH CÔNG CỤ TRÊN CÙNG GÓC TRÁI HỢP NHẤT */
         .top-left-toolbar {
             position: absolute; top: 15px; left: 60px; z-index: 1000;
-            display: flex; gap: 8px; flex-wrap: wrap;
+            display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
         }
 
         .search-container {
@@ -35,20 +35,18 @@
         }
         .search-button:hover { background: #0056b3; }
 
-        /* Ô CHỌN PHƯỜNG ĐẶT NẰM CẠNH Ô TÌM KIẾM SANG TRỌNG */
+        /* Ô CHỌN PHƯỜNG & TÍCH HIỆN TẤT CẢ GỘM CHUNG */
         .ward-select-container {
             background: white; padding: 5px 8px; border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 6px;
             font-size: 13px; font-weight: bold;
         }
         .ward-select {
             height: 30px; border: 1px solid #007bff; border-radius: 4px;
             padding: 0 6px; font-size: 13px; color: #007bff; font-weight: bold; outline: none; cursor: pointer;
         }
-
-        /* CHỈNH LẠI Ô TÍCH LAYER Ở GÓC PHẢI KHÔNG BỊ CẤN */
-        .leaflet-top.leaflet-right {
-            top: 10px; right: 10px;
+        .show-all-checkbox {
+            width: 16px; height: 16px; cursor: pointer; accent-color: #007bff;
         }
 
         .gps-button {
@@ -81,9 +79,10 @@
     </div>
 
     <div class="ward-select-container">
-        <label for="wardSelect">📍 Phường/Xã: </label>
+        <!-- Ô tích chọn hiện tất cả ranh giới nằm ngay bên cạnh -->
+        <input type="checkbox" id="chkShowAll" class="show-all-checkbox" onchange="toggleShowAll(this.checked)" title="Tích chọn để hiện tất cả các Phường/Xã">
         <select id="wardSelect" class="ward-select" onchange="filterWard(this.value)">
-            <option value="ALL">-- Tất cả --</option>
+            <!-- Danh sách các Phường/Xã tự động được điền ở đây -->
         </select>
     </div>
 </div>
@@ -100,15 +99,9 @@
     L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] }).addTo(map);
 
     // =========================================================================
-    // 1. QUẢN LÝ LAYER VÀ DANH SÁCH PHƯỜNG
+    // 1. QUẢN LÝ QUY TRÌNH ẨN / HIỆN CÁC PHƯỜNG XÃ
     // =========================================================================
     var layerNhomPhuong = L.layerGroup().addTo(map);
-
-    var overlayLayers = {
-        " Ranh giới Phường/Xã": layerNhomPhuong
-    };
-    L.control.layers(null, overlayLayers, { collapsed: false, position: 'topright' }).addTo(map);
-
     var danhSachPhuongXa = [];
 
     function addWardToList(id, tenPhuong, layerGroup) {
@@ -116,28 +109,31 @@
         danhSachPhuongXa.sort((a, b) => a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' }));
 
         var selectElem = document.getElementById("wardSelect");
-        selectElem.innerHTML = '<option value="ALL">-- Tất cả --</option>';
+        selectElem.innerHTML = '';
         danhSachPhuongXa.forEach(function(item) {
             var opt = document.createElement("option");
             opt.value = item.id;
             opt.textContent = item.name;
             selectElem.appendChild(opt);
         });
+
+        // Tự động kích hoạt lọc theo mục chọn đầu tiên
+        if (danhSachPhuongXa.length > 0) {
+            filterWard(document.getElementById("wardSelect").value);
+        }
     }
 
+    // Xử lý khi chọn 1 Phường/Xã cụ thể trong danh sách thả
     function filterWard(selectedId) {
-        if (!map.hasLayer(layerNhomPhuong)) {
-            map.addLayer(layerNhomPhuong);
-        }
-
-        if (selectedId === "ALL") {
-            var allBounds = L.latLngBounds([]);
-            danhSachPhuongXa.forEach(function(item) {
-                layerNhomPhuong.addLayer(item.layer);
-                allBounds.extend(item.layer.getBounds());
-            });
-            if (allBounds.isValid()) map.fitBounds(allBounds, { padding: [20, 20] });
+        var chkAll = document.getElementById("chkShowAll");
+        
+        if (chkAll.checked) {
+            // Nếu đang tích nút hiện tất cả -> Hiện toàn bộ các phường
+            showAllWards();
+            var target = danhSachPhuongXa.find(item => item.id === selectedId);
+            if (target) map.fitBounds(target.layer.getBounds(), { padding: [30, 30] });
         } else {
+            // Nếu không tích -> Chỉ hiện duy nhất 1 phường được chọn
             danhSachPhuongXa.forEach(function(item) {
                 if (item.id === selectedId) {
                     layerNhomPhuong.addLayer(item.layer);
@@ -146,6 +142,27 @@
                     layerNhomPhuong.removeLayer(item.layer);
                 }
             });
+        }
+    }
+
+    // Hiển thị tất cả các Phường/Xã
+    function showAllWards() {
+        var allBounds = L.latLngBounds([]);
+        danhSachPhuongXa.forEach(function(item) {
+            layerNhomPhuong.addLayer(item.layer);
+            allBounds.extend(item.layer.getBounds());
+        });
+        return allBounds;
+    }
+
+    // Xử lý khi bấm nút tích vuông Bật/Tắt
+    function toggleShowAll(isChecked) {
+        if (isChecked) {
+            var bounds = showAllWards();
+            if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
+        } else {
+            var currentSelect = document.getElementById("wardSelect").value;
+            filterWard(currentSelect);
         }
     }
 
@@ -182,12 +199,42 @@
             }).addTo(subGroup);
 
             subGroup.getBounds = function() { return bounds; };
-            subGroup.addTo(layerNhomPhuong);
 
+            // Đưa vào danh sách thả & quản lý hiển thị
             addWardToList('hoa-thanh', 'Phường Hòa Thành', subGroup);
-            map.fitBounds(bounds, { padding: [20, 20] });
         })
         .catch(err => console.error("Chưa đọc được file hoa-thanh.geojson:", err));
+
+
+    /* =========================================================================
+       👉 HƯỚNG DẪN THÊM PHƯỜNG / XÃ MỚI SAU NÀY:
+       -------------------------------------------------------------------------
+       Sao chép đoạn code dưới đây và sửa tên file + tên phường tương ứng:
+
+       fetch('dinh-thanh.geojson')
+           .then(response => response.json())
+           .then(data => {
+               var subGroup = L.layerGroup();
+               var layerGeo = L.geoJSON(data, {
+                   style: { color: "#28a745", weight: 3.5, opacity: 0.9, fillColor: "#28a745", fillOpacity: 0.05, interactive: false }
+               }).addTo(subGroup);
+
+               var bounds = layerGeo.getBounds();
+               L.marker(bounds.getCenter(), {
+                   icon: L.divIcon({
+                       className: 'ward-label-text',
+                       html: 'XÃ ĐỊNH THÀNH',
+                       iconSize: [200, 30],
+                       iconAnchor: [100, 15]
+                   }),
+                   interactive: false
+               }).addTo(subGroup);
+
+               subGroup.getBounds = function() { return bounds; };
+               addWardToList('dinh-thanh', 'Xã Định Thành', subGroup);
+           })
+           .catch(err => console.error("Lỗi tải file mới:", err));
+       ========================================================================= */
 
 
     // =========================================================================
