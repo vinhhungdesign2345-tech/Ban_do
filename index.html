@@ -15,7 +15,6 @@
         .popup-table tr:nth-child(even){background-color: #fafafa;}
         .popup-value { display: inline-block; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         
-        /* CỤM THANH CÔNG CỤ TRÊN CÙNG GÓC TRÁI */
         .top-left-toolbar {
             position: absolute; top: 15px; left: 60px; z-index: 1000;
             display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
@@ -35,7 +34,6 @@
         }
         .search-button:hover { background: #0056b3; }
 
-        /* Ô CHỌN PHƯỜNG & TÍCH HIỆN TẤT CẢ GỘM CHUNG */
         .ward-select-container {
             background: white; padding: 5px 8px; border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 6px;
@@ -60,8 +58,8 @@
         .svg-ward-label {
             font-family: Arial, sans-serif;
             font-weight: 900;
-            fill: #ffffff;             /* Màu chữ trắng */
-            stroke: #003366;           /* Đường viền chữ màu xanh đậm để làm nổi bật trên nền vệ tinh */
+            fill: #ffffff;
+            stroke: #003366;
             stroke-width: 0.8px;
             paint-order: stroke fill;
             text-anchor: middle;
@@ -97,9 +95,6 @@
     var map = L.map('map').setView([10.25, 105.18], 13);
     L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] }).addTo(map);
 
-    // =========================================================================
-    // HÀM TẠO NHÃN CHỮ SVG CO GIÃN CHUẨN KÍCH THƯỚC NHƯ THỬA ĐẤT
-    // =========================================================================
     function createSvgLabel(centerLatLng, textString) {
         var SvgLabelOverlay = L.Layer.extend({
             onAdd: function(map) {
@@ -130,10 +125,8 @@
                 var p = map.latLngToLayerPoint(centerLatLng);
                 L.DomUtil.setPosition(this._container, p);
                 
-                // Tự động tính toán kích thước font chữ chuẩn theo Zoom Level thực tế
                 var currentZoom = map.getZoom();
                 var baseFontSize = Math.pow(2, currentZoom - 13) * 16;
-                
                 this._text.setAttribute('font-size', baseFontSize + 'px');
             }
         });
@@ -141,10 +134,6 @@
         return new SvgLabelOverlay();
     }
 
-
-    // =========================================================================
-    // 1. QUẢN LÝ QUY TRÌNH ẨN / HIỆN CÁC PHƯỜNG XÃ
-    // =========================================================================
     var layerNhomPhuong = L.layerGroup().addTo(map);
     var danhSachPhuongXa = [];
 
@@ -209,43 +198,24 @@
         }
     }
 
-
-    // =========================================================================
-    // 2. TẢI CÁC PHƯỜNG / XÃ GEOJSON
-    // =========================================================================
-
-    // --- PHƯỜNG HÒA THÀNH ---
+    // TẢI CÁC PHƯỜNG GEOJSON
     fetch('hoa-thanh.geojson')
         .then(response => response.json())
         .then(data => {
             var subGroup = L.layerGroup();
             var layerGeo = L.geoJSON(data, {
-                style: {
-                    color: "#007bff",
-                    weight: 3.5,
-                    opacity: 0.9,
-                    fillColor: "#007bff",
-                    fillOpacity: 0.05,
-                    interactive: false
-                }
+                style: { color: "#007bff", weight: 3.5, opacity: 0.9, fillColor: "#007bff", fillOpacity: 0.05, interactive: false }
             }).addTo(subGroup);
 
             var bounds = layerGeo.getBounds();
-            
-            // Vẽ tên Phường bằng SVG màu trắng
             var labelSvg = createSvgLabel(bounds.getCenter(), 'PHƯỜNG HÒA THÀNH');
             labelSvg.addTo(subGroup);
 
             subGroup.getBounds = function() { return bounds; };
-
             addWardToList('hoa-thanh', 'Phường Hòa Thành', subGroup);
         })
         .catch(err => console.error("Chưa đọc được file hoa-thanh.geojson:", err));
 
-
-    // =========================================================================
-    // 3. ĐỊNH VỊ VÀ TÌM KIẾM THỬA ĐẤT (GOOGLE SHEETS)
-    // =========================================================================
     var userMarker, userCircle, currentLatLng = null;
     var cacThuaDatDangSang = [];
     var tatCaLayerThuaDat = [];
@@ -304,15 +274,8 @@
     }
 
     function highlightThuaDat(polygon) {
-        polygon.setStyle({
-            weight: 3.5,
-            color: '#ffeb3b',
-            fillColor: '#ff5722',
-            fillOpacity: 0.7
-        });
-        if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
-            polygon.bringToFront();
-        }
+        polygon.setStyle({ weight: 3.5, color: '#ffeb3b', fillColor: '#ff5722', fillOpacity: 0.7 });
+        if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) { polygon.bringToFront(); }
         cacThuaDatDangSang.push(polygon);
     }
 
@@ -342,20 +305,12 @@
         if (cacThuaTimThay.length > 0) {
             xoaTatCaHighlightCu();
             var group = L.featureGroup(cacThuaTimThay);
-
-            cacThuaTimThay.forEach(function(polygon) {
-                highlightThuaDat(polygon);
-            });
-
+            cacThuaTimThay.forEach(function(polygon) { highlightThuaDat(polygon); });
             map.fitBounds(group.getBounds(), { maxZoom: 18, padding: [30, 30] });
-
-            if (cacThuaTimThay.length === 1) {
-                cacThuaTimThay[0].openPopup();
-            } else {
-                alert("Tìm thấy " + cacThuaTimThay.length + " thửa đất thuộc từ khóa này. Hệ thống đã khoanh vùng tất cả!");
-            }
+            if (cacThuaTimThay.length === 1) { cacThuaTimThay[0].openPopup(); }
+            else { alert("Tìm thấy " + cacThuaTimThay.length + " thửa đất thuộc từ khóa này!"); }
         } else {
-            alert("Không tìm thấy thửa đất nào khớp với từ khóa của bạn!");
+            alert("Không tìm thấy thửa đất nào!");
         }
     }
 
@@ -363,10 +318,53 @@
         if (e.key === 'Enter') { searchPlot(); }
     });
 
+    // =========================================================================
+    // 🔴 CÔNG TẮC CHẾ ĐỘ PHÁT TRIỂN (DEV MODE)
+    // - Đặt = true : BỎ QUA ĐĂNG NHẬP (khi bạn cần sửa code/thử nghiệm)
+    // - Đặt = false: BẬT YÊU CẦU ĐĂNG NHẬP (khi gửi link cho khách)
+    // =========================================================================
+    var IS_DEV_MODE = true; 
+
+
     fetch(webAppUrl)
         .then(response => response.json())
         .then(res => {
+            var allowedUsers = res.allowedUsers || [];
             var plots = res.plots || [];
+            
+            // =========================================================================
+            // 🟢 [KHỐI ĐĂNG NHẬP - BỎ QUA KHI IS_DEV_MODE = true]
+            // =========================================================================
+            if (!IS_DEV_MODE) {
+                var userPhone = prompt("Vui lòng nhập SĐT đã đăng ký:", "");
+                userPhone = userPhone ? userPhone.trim() : "";
+                var userPass = prompt("Vui lòng nhập mật khẩu được cấp:", "");
+                userPass = userPass ? userPass.trim() : "";
+                
+                var account = null;
+                var cleanPhoneInput = userPhone.replace(/[^0-9]/g, "");
+                if (!cleanPhoneInput.startsWith("0") && cleanPhoneInput !== "") cleanPhoneInput = "0" + cleanPhoneInput;
+
+                for (var i = 0; i < allowedUsers.length; i++) {
+                    var cleanAllowedPhone = allowedUsers[i].phone.replace(/[^0-9]/g, "");
+                    if (!cleanAllowedPhone.startsWith("0")) cleanAllowedPhone = "0" + cleanAllowedPhone;
+
+                    if (cleanAllowedPhone === cleanPhoneInput && allowedUsers[i].password === userPass) {
+                        account = allowedUsers[i];
+                        break;
+                    }
+                }
+                
+                if (!account) {
+                    alert("Đăng nhập thất bại!");
+                    document.getElementById("map").style.display = "none";
+                    return;
+                }
+            }
+            // =========================================================================
+
+
+            // VẼ TOÀN BỘ THỬA ĐẤT LÊN BẢN ĐỒ
             tatCaLayerThuaDat = []; 
             plots.forEach(function(item) {
                 if (!item.wkt) return;
@@ -375,7 +373,6 @@
                 var mauSac = getMauTheoLoaiDat(p.loai_dat);
                 
                 var polygon = L.polygon(coords, { color: mauSac.color, weight: 1.5, fillColor: mauSac.fillColor, fillOpacity: 0.45 }).addTo(map);
-                
                 polygon.options.originalStyle = { color: mauSac.color, weight: 1.5, fillColor: mauSac.fillColor, fillOpacity: 0.45 };
                 polygon.customProperties = p; 
                 tatCaLayerThuaDat.push(polygon); 
