@@ -58,6 +58,29 @@
     var map = L.map('map').setView([10.25, 105.18], 13);
     L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] }).addTo(map);
 
+    // ==========================================
+    // ĐOẠN CODE MỚI: TẢI ĐƯỜNG BAO PHƯỜNG HÒA THÀNH
+    // ==========================================
+    fetch('hoa-thanh.geojson')
+        .then(response => response.json())
+        .then(data => {
+            var layerHoaThanh = L.geoJSON(data, {
+                style: {
+                    color: "#007bff",       // Đường viền xanh dương nổi bật (giống Guland)
+                    weight: 3.5,            // Độ dầy viền
+                    opacity: 0.9,           // Độ đậm nét
+                    fillColor: "#007bff",   
+                    fillOpacity: 0.05,      // Nhạt để xem rõ các thửa đất bên dưới
+                    interactive: false      // Bấm xuyên qua được các thửa đất nhỏ bên trong
+                }
+            }).addTo(map);
+
+            // Tự động căn bản đồ vừa vặn với Phường Hòa Thành
+            map.fitBounds(layerHoaThanh.getBounds());
+        })
+        .catch(err => console.error("Chưa đọc được file hoa-thanh.geojson:", err));
+    // ==========================================
+
     var userMarker, userCircle, currentLatLng = null;
     var cacThuaDatDangSang = [];
     var tatCaLayerThuaDat = [];
