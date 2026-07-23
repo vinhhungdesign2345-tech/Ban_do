@@ -199,32 +199,41 @@
     }
 
     // ĐỌC VÀ HIỂN THỊ FILE GEOJSON PHƯỜNG HÒA THÀNH
-    fetch('hoa-thanh.geojson')
-        .then(response => response.json())
-        .then(data => {
-            var subGroup = L.layerGroup();
-            var layerGeo = L.geoJSON(data, {
-                style: { color: "#007bff", weight: 3.5, opacity: 0.9, fillColor: "#007bff", fillOpacity: 0.05, interactive: false }
-            }).addTo(subGroup);
+fetch('hoa-thanh.geojson')
+    .then(response => response.json())
+    .then(data => {
+        var subGroup = L.layerGroup();
+        var layerGeo = L.geoJSON(data, {
+            style: { color: "#007bff", weight: 3.5, opacity: 0.9, fillColor: "#007bff", fillOpacity: 0.05, interactive: false }
+        }).addTo(subGroup);
 
-            var bounds = layerGeo.getBounds();
-            var labelSvg = createSvgLabel(bounds.getCenter(), 'PHƯỜNG HÒA THÀNH');
-            labelSvg.addTo(subGroup);
-            subGroup.getBounds = function() { return bounds; };
+        var bounds = layerGeo.getBounds();
+        var labelSvg = createSvgLabel(bounds.getCenter(), 'PHƯỜNG HÒA THÀNH');
+        labelSvg.addTo(subGroup);
+        subGroup.getBounds = function() { return bounds; };
 
-            // Hiển thị trực tiếp layer lên bản đồ
-            subGroup.addTo(layerNhomPhuong);
+        // 1. Thêm layer vào nhóm hiển thị
+        layerNhomPhuong.addLayer(subGroup);
 
-            // Zoom khung hình đến khu vực Phường Hòa Thành
-            if (bounds.isValid()) {
-                map.fitBounds(bounds, { padding: [30, 30] });
-            }
+        // 2. Thu phóng bản đồ đến Hòa Thành
+        if (bounds.isValid()) {
+            map.fitBounds(bounds, { padding: [30, 30] });
+        }
 
-            // Cập nhật ô chọn và tự động chọn Phường Hòa Thành
-            addWardToList('hoa-thanh', 'Phường Hòa Thành', subGroup);
-            document.getElementById("wardSelect").value = 'hoa-thanh';
-        })
-        .catch(err => console.error("Chưa đọc được file hoa-thanh.geojson:", err));
+        // 3. Thêm vào mảng dữ liệu
+        danhSachPhuongXa.push({ id: 'hoa-thanh', name: 'Phường Hòa Thành', layer: subGroup });
+
+        // 4. Tạo trực tiếp option vào thẻ select để đảm bảo 100% hiển thị
+        var selectElem = document.getElementById("wardSelect");
+        var opt = document.createElement("option");
+        opt.value = 'hoa-thanh';
+        opt.textContent = 'Phường Hòa Thành';
+        selectElem.appendChild(opt);
+
+        // 5. Chọn mặc định Phường Hòa Thành
+        selectElem.value = 'hoa-thanh';
+    })
+    .catch(err => console.error("Chưa đọc được file hoa-thanh.geojson:", err));
 
     // 3. XỬ LÝ ĐỊNH VỊ GPS VÀ TÌM KIẾM
     var userMarker, userCircle, currentLatLng = null;
