@@ -7,12 +7,14 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        html, body, #map { height: 100%; margin: 0; padding: 0; }
+        html, body { height: 100%; margin: 0; padding: 0; }
+        #app-container { position: relative; width: 100%; height: 100%; }
+        #map { height: 100%; width: 100%; margin: 0; padding: 0; }
         .leaflet-popup-content { margin: 8px 10px; line-height: 1.2; }
         .popup-table { border-collapse: collapse; width: 100%; font-size: 11px; color: #444; }
         .popup-table td { border: 1px solid #eee; padding: 2px 4px; vertical-align: top; }
         .popup-table b { color: #333; font-weight: 600; }
-        .popup-table tr:nth-child(even){background-color: #fafafa;}
+        .popup-table tr:nth-child(even){ background-color: #fafafa; }
         .popup-value { display: inline-block; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         
         .top-left-toolbar {
@@ -64,25 +66,35 @@
     </style>
 </head>
 <body>
-<div class="top-left-toolbar">
-    <div class="search-container">
-        <input type="text" id="searchKey" class="search-input" placeholder="Tờ/thửa hoặc tên chủ...">
-        <button class="search-button" onclick="searchPlot()">Tìm</button>
+
+<div id="app-container">
+    <div class="top-left-toolbar">
+        <div class="search-container">
+            <input type="text" id="searchKey" class="search-input" placeholder="Tờ/thửa hoặc tên chủ...">
+            <button class="search-button" onclick="searchPlot()">Tìm</button>
+        </div>
+        <div class="ward-select-container">
+            <input type="checkbox" id="chkShowAll" class="show-all-checkbox" onchange="toggleShowAll(this.checked)" title="Tích chọn để hiện tất cả các Phường/Xã">
+            <select id="wardSelect" class="ward-select" onchange="filterWard(this.value)">
+                <option value="">-- Trống --</option>
+            </select>
+        </div>
     </div>
-    <div class="ward-select-container">
-        <input type="checkbox" id="chkShowAll" class="show-all-checkbox" onchange="toggleShowAll(this.checked)" title="Tích chọn để hiện tất cả các Phường/Xã">
-        <select id="wardSelect" class="ward-select" onchange="filterWard(this.value)">
-            <option value="">-- Trống --</option>
-        </select>
-    </div>
+    
+    <div id="map"></div>
+
+    <button class="gps-button" onclick="findMyLocation()">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#007bff" stroke-width="2.5"><circle cx="12" cy="12" r="7"></circle><circle cx="12" cy="12" r="1" fill="#007bff"></circle><line x1="12" y1="1" x2="12" y2="4"></line><line x1="12" y1="20" x2="12" y2="23"></line><line x1="1" y1="12" x2="4" y2="12"></line><line x1="20" y1="12" x2="23" y2="12"></line></svg>
+    </button>
 </div>
-<div id="map"></div>
-<button class="gps-button" onclick="findMyLocation()">
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#007bff" stroke-width="2.5"><circle cx="12" cy="12" r="7"></circle><circle cx="12" cy="12" r="1" fill="#007bff"></circle><line x1="12" y1="1" x2="12" y2="4"></line><line x1="12" y1="20" x2="12" y2="23"></line><line x1="1" y1="12" x2="4" y2="12"></line><line x1="20" y1="12" x2="23" y2="12"></line></svg>
-</button>
 
 <script>
     var webAppUrl = "https://script.google.com/macros/s/AKfycbyXKmoC9cWo0kITyguVpc-eTbp_imGagxzi4vpyKe9nOXiql63Vf-z_-hzUGKt_T1zR/exec";
+    
+    // Hàm khóa/ẩn sạch giao diện người dùng
+    function anGiaoDien() {
+        document.getElementById("app-container").style.display = "none";
+    }
 
     // 1. KHỞI TẠO BẢN ĐỒ LEAFLET
     var map = L.map('map').setView([10.25, 105.18], 13);
@@ -302,9 +314,7 @@
         if (e.key === 'Enter') { searchPlot(); }
     });
 
-    // =========================================================================
     // 4. HÀM BẢO MẬT VÀ XÁC THỰC VỊ TRÍ + THIẾT BỊ
-    // =========================================================================
     function getDeviceType() {
         var ua = navigator.userAgent;
         if (/android/i.test(ua)) return "Android";
@@ -340,38 +350,38 @@
         var deviceType = getDeviceType();
         var locationStr = await getExactLocation();
         var fullInfo = "Thiết bị: " + deviceType + " | Vị trí: " + locationStr;
-
         var userPhone = localStorage.getItem("admin_phone");
         var userPass = localStorage.getItem("admin_pass");
-
         if (!userPhone || !userPass) {
             userPhone = prompt("Vui lòng nhập SĐT đăng ký:", "");
             userPass = prompt("Vui lòng nhập mật khẩu:", "");
             userPhone = userPhone ? userPhone.trim() : "";
             userPass = userPass ? userPass.trim() : "";
         }
-
+        
+        // Ẩn toàn bộ UI nếu chưa điền đủ thông tin
         if (!userPhone || !userPass) {
             alert("Bạn chưa nhập đầy đủ thông tin đăng nhập!");
-            document.getElementById("map").style.display = "none";
+            anGiaoDien();
             return;
         }
 
         var requestUrl = webAppUrl + "?phone=" + encodeURIComponent(userPhone) 
                         + "&pass=" + encodeURIComponent(userPass) 
                         + "&device_id=" + encodeURIComponent(fullInfo);
-
+        
         fetch(requestUrl)
             .then(response => response.json())
             .then(res => {
+                // Ẩn toàn bộ UI nếu server trả về lỗi khóa / không đủ quyền
                 if (res.status === "error") {
                     alert(res.message);
                     localStorage.removeItem("admin_phone");
                     localStorage.removeItem("admin_pass");
-                    document.getElementById("map").style.display = "none";
+                    anGiaoDien();
                     return;
                 }
-
+                
                 if (res.role === "admin" || res.status === "success") {
                     localStorage.setItem("admin_phone", userPhone);
                     localStorage.setItem("admin_pass", userPass);
@@ -381,7 +391,6 @@
                 var plots = res.plots || [];
                 tatCaLayerThuaDat = []; 
                 var boundsList = [];
-
                 plots.forEach(function(item) {
                     if (!item.wkt) return;
                     try {
@@ -394,7 +403,6 @@
                         polygon.customProperties = p; 
                         tatCaLayerThuaDat.push(polygon); 
                         boundsList.push(polygon.getBounds());
-
                         var check = function(v) { return (v !== undefined && v !== null) ? v : ""; };
                         var popupContent = "<table class='popup-table'>" +
                           "<tr><td><b>ID đất</b></td><td><span class='popup-value'>" + check(p.id_dat) + "</span></td></tr>" +
@@ -407,14 +415,12 @@
                           "<tr><td><b>Trạng thái</b></td><td><span class='popup-value'>" + check(p.trang_thai) + "</span></td></tr>" +
                           "<tr><td><b>Ghi chú</b></td><td><span class='popup-value'>" + check(p.ghi_chu) + "</span></td></tr>" +
                           "</table>";
-
                         polygon.bindPopup(popupContent);
                     } catch(e) {
                         console.error("Lỗi vẽ WKT:", item.wkt, e);
                     }
                 });
 
-                // Tự động gom khung hình bao phủ hết các thửa đất
                 if (boundsList.length > 0) {
                     var featureGroup = L.featureGroup(tatCaLayerThuaDat);
                     map.fitBounds(featureGroup.getBounds(), { padding: [20, 20] });
@@ -423,6 +429,7 @@
             .catch(err => {
                 console.error("Lỗi kết nối Server:", err);
                 alert("Không thể kết nối tới Google Apps Script!");
+                anGiaoDien();
             });
     }
 
